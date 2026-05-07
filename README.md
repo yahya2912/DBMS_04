@@ -46,7 +46,7 @@ git --version
 > **Screenshot 1:** Take a screenshot of your terminal showing all three
 > successful version checks and insert it here.
 >
-> `[insert screenshot]`
+> ![screenshot_1](Screenshot_1)
 
 ---
 
@@ -165,6 +165,8 @@ Check: In every relation, does each non-key attribute depend on the **complete**
 primary key?
 
 > *Your check:*
+> In every relation, each non-key attribute depends fully on the complete primary key.
+> For example, `cust_name` and `cust_city` depend fully on `cust_no`; `description` and `hours` depend on the full composite key `(order_no, item_no)`.
 
 ### Task 2b – Decompose into 3NF
 
@@ -180,6 +182,7 @@ State your conclusion: are all five relations from Task 2a already in 3NF?
 If not, perform the missing decomposition.
 
 > *Your analysis and any further decomposition:*
+> All five relations from Task 2a are already in 3NF. After the 2NF split. cust_name and cust_city are in customer. so no transitive dependency through cust_no remains in order. All other relations have non-key attributes that depend directly on their primary key. No further decomposition is needed.
 
 ### Task 2c – Verify Losslessness
 
@@ -192,6 +195,9 @@ Name the shared attributes, state the FD you rely on, and conclude whether the
 decomposition is lossless.
 
 > *Your verification:*
+> Splitting the flat table into order and vehicle, the shared attribute is plate. By
+> the FD `plate → make, model, year, cust_no`, the Health criterion is satisfied. The
+> decomposition is **lossless**
 
 ### Questions for Task 2
 
@@ -201,12 +207,14 @@ Describe a realistic scenario where the direct link `order → customer` is
 necessary.
 
 > *Your answer:*
+> A customer may bring a vehicle that is not yet registered in the database, or a vehicle could be sold to a new owner mid-year. In both cases, `plate → cust_no` would point to the wrong customer. The direct `order → customer` link ensures the correct customer is always recorded at the time the order was placed.
 
 **Question 2.2:** Is the schema after the 3NF decomposition also in BCNF?
 Justify your answer using the definition: for every non-trivial FD $X \rightarrow Y$,
 $X$ must be a superkey.
 
 > *Your answer:*
+> Yes. In every relation, the only non-trivial FDs have a primary key as their determinant: `cust_no → cust_name, cust_city`; `plate → make, model, year, cust_no`; etc. Since every determinant is a superkey, the schema is also in BCNF
 
 **Question 2.3:** The hourly rate of a mechanic is stored in `mechanic`. If a
 mechanic changes their rate during the year, what problem arises for already
@@ -214,6 +222,7 @@ completed orders? How could the schema be extended to correctly record
 historical hourly rates?
 
 > *Your answer:*
+> If a mechanic's rate changes, the updated value in mechanic overwrites the old one, making it impossible to reconstruct the correct rate for past orders. The schema could be extended with a mechanic_rate table sorting `(mech_id, valid_from, hourly_rate)`, allowing the correct historical rate to be looked up by order date.
 
 ---
 
