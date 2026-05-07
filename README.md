@@ -99,6 +99,9 @@ Read the table carefully and describe one concrete example of each:
    deleted entirely?
 
 > *Your answers:*
+> 1. Rows 1, 2 and 4
+> 2. In order to be added to this table, the primary key (OrderNo, ItemNo) should be given, so the answer is no.
+> 3. By deleting the Order 1002, every other connected column is lost, like the mechanic's details and the car's license plate... 
 
 ### Task 1b – Write Down Functional Dependencies
 
@@ -112,6 +115,11 @@ Hints:
 - What only follows from the combination `(OrderNo, ItemNo)`?
 
 > *Your FD list:*
+> - $CustNo \rightarrow CustName, CustCity$
+> - $Plate \rightarrow Make, Model, Year, CustNo$
+> - $MechID \rightarrow MechName, HourlyRate$
+> - $OrderNo \rightarrow Date, CustNo, Plate$
+> - $(OrderNo, ItemNo) \rightarrow MechID, Description, Hours$
 
 ### Questions for Task 1
 
@@ -119,17 +127,19 @@ Hints:
 respect to the primary key `(OrderNo, ItemNo)`? Justify your answer using the
 definition from Lecture 04.
 
-> *Your answer:*
+> *Your answer:* `CustNo → CustCity` is a partial dependecy. CustCity is already determined by OrderNo alone, so ItemNo is not needed. Since CustCity depends on a proper subset of the primary key (OrderNo, ItemNo), the dependency is partial by definition
 
 **Question 1.2:** Identify a transitive dependency in the flat table and explain
 why it violates 3NF.
 
-> *Your answer:*
+> *Your answer:* A transitive dependency exists here: `OrderNo → CustNo → CustName, CustCity`
+> CustName and CustCity depend on the primary key only indirectly, through the non-key attribute CustNo. This violates 3NF, which requires every non-key attribute to depend directly on the primary key and not on another non-key attribute.
 
 **Question 1.3:** Compute the attribute closure $\{\mathrm{OrderNo}\}^+$ using
 your FD list. Is `OrderNo` alone a superkey of the flat table?
 
-> *Your answer:*
+> *Your answer:* `{OrderNo}+={OrderNo, Date, CustNo, CustName, CustCity, Plate, Make, Model, Year}`
+ItemNo, MechId, MechName, HourlyRate, Description and Hours are missing. Therefore OrderNo alone is not a superkey of the flat table.
 
 ---
 
