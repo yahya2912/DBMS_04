@@ -1,0 +1,51 @@
+@startuml
+!define PK <b><color:gold>PK</color></b>
+!define FK <i><color:gray>FK</color></i>
+
+entity customer {
+    PK cust_no    : INTEGER
+    --
+    cust_name     : TEXT
+    cust_city     : TEXT
+}
+
+entity vehicle {
+    PK plate      : TEXT
+    --
+    FK cust_no    : INTEGER
+    make          : TEXT
+    model         : TEXT
+    year          : INTEGER
+}
+
+entity mechanic {
+    PK mech_id    : INTEGER
+    --
+    mech_name     : TEXT
+    hourly_rate   : REAL
+}
+
+entity order {
+    PK order_no   : INTEGER
+    --
+    FK plate      : TEXT
+    FK cust_no    : INTEGER
+    date          : DATE
+}
+
+entity work_item {
+    PK FK order_no : INTEGER
+    PK item_no     : INTEGER
+    --
+    FK mech_id     : INTEGER
+    description    : TEXT
+    hours          : REAL
+}
+
+customer ||--o{ vehicle   : "owns"
+customer ||--o{ order     : "places"
+vehicle  ||--o{ order     : "used in"
+order    ||--o{ work_item : "contains"
+mechanic ||--o{ work_item : "performs"
+
+@enduml
