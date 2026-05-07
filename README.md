@@ -46,7 +46,7 @@ git --version
 > **Screenshot 1:** Take a screenshot of your terminal showing all three
 > successful version checks and insert it here.
 >
-> ![screenshot_1](Screenshot_1)
+> ![screenshot_1](assets/Screenshot_1.png)
 
 ---
 
@@ -330,7 +330,7 @@ scp <username>@<server>:/path/to/DBMS_04/schema.svg ~/Downloads/schema.svg
 > **Screenshot 2:** Take a screenshot showing the rendered diagram with all
 > five entities and their relationships.
 >
-> `[insert screenshot]`
+> ![screenshot_2](assets/Screenshot_2.png)
 
 ### Task 3c – Commit
 
@@ -431,7 +431,7 @@ sqlite3 workshop.db ".tables"
 
 > **Screenshot 3:** Take a screenshot showing the `.tables` output.
 >
-> `[insert screenshot]`
+> ![screenshot_3](assets/Screenshot_3.png)
 
 ### Task 4c – Insert Sample Data
 
@@ -508,6 +508,7 @@ Justify both choices in terms of the domain — what does it mean for the
 business if an order is deleted versus if a customer is deleted?
 
 > *Your answer:*
+> Deleting an ordre makes its work items meaningless, they cannot exist without a parent order, so CASCADE is correct. A customer however may own vehicles still in the database and deleting the customer without handling those first would leave orphaned records, so RESTRICT forces the user to resolve dependencies manually before deletion
 
 **Question 4.2:** Test referential integrity by running:
 
@@ -520,6 +521,7 @@ What error do you get? What does this tell you about the difference between
 a constraint declared in DDL and one that is actually enforced at runtime?
 
 > *Your answer:*
+> SQLite returns: `FOREIGN KEY constraint failed`. This shows that declaring a constraint in DDL is not enough; `PRAGMA foreign_keys = ON` must be set at runtime, otherwise SQLite silently ignores foreign key violations
 
 **Question 4.3:** Test the CHECK constraint:
 
@@ -530,6 +532,7 @@ INSERT INTO work_item VALUES (1001, 3, 3, 'Invalid', -0.5);
 What happens? What would happen if the CHECK constraint were missing?
 
 > *Your answer:*
+> SQLite returns: `CHECK constraint failed: work_item`. The row is rejected. Without the CHECK constraint, `-0.5` would be inserted silently, leaving invalid data in the database with no error.
 
 ---
 
@@ -548,6 +551,12 @@ then the SQL query.
 
 ```sql
 -- Query 5a: insert here
+SELECT o.order_no, o.data, o.plate, wi.description, wi.hours
+FROM customer c
+JOIN "order" o    ON c.cust_no  = o.cust_no
+JOIN work_item wi ON c.order_no = wi.order_no
+WHERE c.cust_name = 'Berger, Franz'
+ORDER BY o.date, wi.item_no;
 ```
 
 <details>
@@ -563,6 +572,7 @@ order 1003 (BMW 320i, 2026-03-12).
 and why does the join order not affect the *result*, but does affect *performance*?
 
 > *Your answer:*
+> The result is unaffected by join order due to relational algebra's commutativity. Performance differs because joining the small customer table first filterd by name reduces the working set early, making subsequent joins cheaper. 
 
 ---
 
@@ -575,6 +585,15 @@ least one work item). Sort descending by `total_hours`.
 
 ```sql
 -- Query 5b: insert here
+SELECT m.mech_name,
+   ROUND(SUM(wi.hours), 1)      AS total_hours,
+   COUNT(DISTINCT wi.order_no)  AS orders
+FROM mechanic m
+JOIN work_item wi ON m.mech_id   = wi.mech_id
+JOIN "order" o    ON wi.order_no = o.order_no
+WHERE o.date BETWEEN '2026-03-01' AND '2026-03-31'
+GROUP BY m.mech_id
+ORDER BY total_hours DESC; 
 ```
 
 <details>
@@ -592,6 +611,7 @@ What would `COUNT(*)` count instead, and why would the result differ in this
 case?
 
 > *Your answer:*
+> `COUNT(*)` would count individual work items, not distinct orders. Since a mechanic can have multiple work items per order, `COUNT(*)` would be higher: in this case Huber has 3 items across 2 ordersm so `COUNT(*)` returns 3 while `COUNT(DISTINCT order_no)` correctly returns 2.
 
 ---
 
@@ -606,9 +626,18 @@ Use a set-difference approach with `EXCEPT` and also write an alternative using
 ```sql
 -- Variant 1: EXCEPT
 -- Query 5c-1: insert here
+SELECT plate, model FROM vehicle
+EXCEPT
+SELECT v.plate, v.model FROM vehicle v
+JOIN "order" o ON v.plate = o.plate;
 
 -- Variant 2: NOT EXISTS
 -- Query 5c-2: insert here
+SELECT plate, model FROM vehicle v
+WHERE NOT EXISTS (
+   SELECT 1 FROM "order" o
+   WHERE o.plate = v.plate
+);
 ```
 
 <details>
@@ -630,6 +659,7 @@ always produce the same result. Are there situations where one approach should
 be preferred in practice? Consider readability and extensibility.
 
 > *Your answer:*
+> Both are equivalent. `NOT EXISTS` is generally preferred in practice since it is easier to extend with additional conditions and more clearly express the intent. `EXCEPT` is more concise but harder to mdify if the logic becomes more complex.
 
 ---
 
@@ -650,6 +680,7 @@ The original flat table had 5 rows and 15 columns. The normalized schema has
 at 50,000? Justify with concrete reference to the anomalies from Task 1a.
 
 > *Your answer:*
+> Normalization pays off most at 50,000 rows. With 5 rows, updating Huber's hourly rate means changing 3 rows. With 50,000 rows, the same update anomaly could affect thousands of rows simultaneously, making inconsistency far more likely. Insert and delete anomalies scale the same way.
 
 **Question B – 3NF vs. BCNF:**  
 Lecture 04 explains that BCNF is not always dependency-preserving. Is this
@@ -657,6 +688,7 @@ relevant for the workshop schema? Would a BCNF decomposition have looked
 different from the 3NF decomposition here?
 
 > *Your answer:*
+> Not relevant here. All determinants in the workshop schema are already superkeys, so 3NF and BCNF coincide. A BCNF decomp would look identical to the 3NF
 
 **Question C – Redundant foreign key in `order`:**  
 `order` contains both `plate` (FK → `vehicle`) and `cust_no` (FK → `customer`).
@@ -665,6 +697,7 @@ in `order` is redundant and violates 3NF. Is that correct? When would such
 a deliberate denormalization be justified?
 
 > *Your answer:*
+> It is not a 3NF violation. cust_no in order does not depend on another non-key attribute: it is a direct FK to customer. The deliberate redundancy is justified here because a vehicle can change ownership, so `plate → cust_no` may not always reflect the customer at the time the order was placed.
 
 **Question D – NULL and order status:**  
 An order that has just been created may have no work items yet. What does the
@@ -673,11 +706,16 @@ correctly represent an order's status (open / completed)? Sketch the necessary
 change.
 
 > *Your answer:*
+> The current schema allows an order to exist with no work items. However there is no way to distinguish an intentionally empty order from a completed one. The schema could be extended by adding a status column to order:
+```bash
+ALTER TABLE "order" ADD COLUMN status TEXT NOT NULL DEFAULT 'open'
+   CHECK (status IN ('open', 'completed'));
+```
 
 > **Screenshot 4:** Take a screenshot showing the output of Query 5b directly
 > in `sqlite3` (with `.headers on` and `.mode column` activated).
 >
-> `[insert screenshot]`
+> ![screenshot_4](assets/Screenshot_4.png)
 
 ---
 
